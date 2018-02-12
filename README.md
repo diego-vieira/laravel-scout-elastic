@@ -16,7 +16,7 @@ This package makes is the [Elasticsearch](https://www.elastic.co/products/elasti
 You can install the package via composer:
 
 ``` bash
-composer require tamayo/laravel-scout-elastic
+composer require aobozhang/laravel-scout-elastic
 ```
 
 You must add the Scout service provider and the package service provider in your app.php config:
@@ -44,10 +44,18 @@ After you've published the Laravel Scout package configuration:
     'driver' => env('SCOUT_DRIVER', 'elasticsearch'),
 
 ...
+
     'elasticsearch' => [
-        'index' => env('ELASTICSEARCH_INDEX', 'laravel'),
+        'default_index' => env('ELASTICSEARCH_INDEX', 'index'),
         'hosts' => [
-            env('ELASTICSEARCH_HOST', 'http://localhost'),
+            [
+                'host'   => env('ELASTICSEARCH_HOST', 'http://localhost'),
+                'port'   => env('ELASTICSEARCH_PORT', '9200'),
+                'scheme' => env('ELASTICSEARCH_SSL', true) ? 'https': 'http',
+
+                // 'user'   => 'username',          // when auth needed
+                // 'pass'   => 'password!#$?*abc'   // add these.
+            ],
         ],
     ],
 ...
@@ -58,8 +66,8 @@ After you've published the Laravel Scout package configuration:
 Now you can use Laravel Scout as described in the [official documentation](https://laravel.com/docs/5.3/scout)
 ## Credits
 
-- [Erick Tamayo](https://github.com/ericktamayo)
-- [All Contributors](../../contributors)
+- [Erick Tamayo](https://github.com/ericktamayo)  - Fork from
+- [Aobo](https://github.com/aobozhang)
 
 ## License
 
