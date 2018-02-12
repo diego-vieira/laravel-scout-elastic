@@ -33,9 +33,15 @@ class ElasticsearchEngine extends Engine
                     ->build();
     }
 
-    protected function getIndexFromModels($models)
+    protected function getIndexFromModels()
     {
-        return config('app.name') . '_' . $models->first()->searchableAs();
+        $prefix = config('scout.elasticsearch.index_prefix');
+        
+        if($prefix){
+            return strtolower(config('app.name') . '_' . config('scout.elasticsearch.default_index'));
+        }else{
+            return strtolower(config('scout.elasticsearch.default_index'));
+        }
     }
 
     /**
@@ -50,25 +56,28 @@ class ElasticsearchEngine extends Engine
             return;
         }
 
-        $index = $this->getIndexFromModels($models);
+        $index = $this->getIndexFromModels();
 
         if ($this->usesSoftDelete($models->first()) && config('scout.soft_delete', false)) {
             $models->each->pushSoftDeleteMetadata();
         }
 
-        $models->each(function($model) use ($index)
+        $params['body'] = [];
+        $models->each(function($model) use (&$params, $index)
         {
-            $params = [
-                'index' => $index,
-                'type'  => $model->searchableAs(),
-                'id'    => $model->getKey(),
-                'body'  => [
-                    'upsert' => $model->toSearchableArray(),
-                ],
+            $params['body'][] = [
+                'update' => [
+                    '_id'    => $model->getKey(),
+                    '_index' => $index,
+                    '_type'  => $model->searchableAs(),
+                ]
             ];
-
-            $response = $client->update($params);
+            $params['body'][] = [
+                'doc' => $model->toSearchableArray(),
+                'doc_as_upsert' => true
+            ];
         });
+        $this->elastic->bulk($params);
 
     }
 
@@ -81,7 +90,7 @@ class ElasticsearchEngine extends Engine
     public function delete($models)
     {
 
-        $index = $this->getIndexFromModels($models);
+        $index = $this->getIndexFromModels();
         $models->each(function($model) use($index)
         {
             $params = [
@@ -138,10 +147,10 @@ class ElasticsearchEngine extends Engine
      */
     protected function performSearch(Builder $builder, array $options = [], $index = false)
     {
-        if($index){
-            $index = config('scout.elasticsearch.default_index');
+        if(!$index){
+            $index = $this->getIndexFromModels();
         }
-        
+
         $params = [
             'index' => $index,
             'type' => $builder->index ?: $builder->model->searchableAs(),
@@ -267,4 +276,16 @@ class ElasticsearchEngine extends Engine
             return [$order['column'] => $order['direction']];
         })->toArray();
     }
+
+    /**
+     * Determine if the given model uses soft deletes.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @return bool
+     */
+    protected function usesSoftDelete($model)
+    {
+        return in_array(SoftDeletes::class, class_uses_recursive($model));
+    }
+
 }
