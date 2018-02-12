@@ -4,19 +4,13 @@ namespace ScoutEngines\Elasticsearch;
 
 use Laravel\Scout\Builder;
 use Laravel\Scout\Engines\Engine;
-use Elasticsearch\Client as Elastic;
+use Elasticsearch\ClientBuilder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection as BaseCollection;
 
 class ElasticsearchEngine extends Engine
 {
-    /**
-     * Index where the models will be saved.
-     *
-     * @var string
-     */
-    protected $index;
-    
     /**
      * Elastic where the instance of Elastic|\Elasticsearch\Client is stored.
      *
@@ -30,10 +24,18 @@ class ElasticsearchEngine extends Engine
      * @param  \Elasticsearch\Client  $elastic
      * @return void
      */
-    public function __construct(Elastic $elastic, $index)
+    public function __construct()
     {
-        $this->elastic = $elastic;
-        $this->index = $index;
+        $hosts = config('scout.elasticsearch.hosts');
+
+        $this->elastic = ClientBuilder::create()
+                    ->setHosts($hosts)
+                    ->build();
+    }
+
+    protected function getIndexFromModals($modals)
+    {
+        return config('app.name') . '_' . $models->first()->searchableAs();
     }
 
     /**
@@ -44,24 +46,30 @@ class ElasticsearchEngine extends Engine
      */
     public function update($models)
     {
-        $params['body'] = [];
+        if ($models->isEmpty()) {
+            return;
+        }
 
-        $models->each(function($model) use (&$params)
+        $index = $this->getIndexFromModals($modals);
+
+        if ($this->usesSoftDelete($models->first()) && config('scout.soft_delete', false)) {
+            $models->each->pushSoftDeleteMetadata();
+        }
+
+        $models->each(function($model) use ($index)
         {
-            $params['body'][] = [
-                'update' => [
-                    '_id' => $model->getKey(),
-                    '_index' => $this->index,
-                    '_type' => $model->searchableAs(),
-                ]
+            $params = [
+                'index' => $index,
+                'type'  => $model->searchableAs(),
+                'id'    => $model->getKey(),
+                'body'  => [
+                    'upsert' => $model->toSearchableArray(),
+                ],
             ];
-            $params['body'][] = [
-                'doc' => $model->toSearchableArray(),
-                'doc_as_upsert' => true
-            ];
+
+            $response = $client->update($params);
         });
 
-        $this->elastic->bulk($params);
     }
 
     /**
@@ -72,20 +80,18 @@ class ElasticsearchEngine extends Engine
      */
     public function delete($models)
     {
-        $params['body'] = [];
 
-        $models->each(function($model) use (&$params)
+        $index = $this->getIndexFromModals($modals);
+        $models->each(function($model) use($index)
         {
-            $params['body'][] = [
-                'delete' => [
-                    '_id' => $model->getKey(),
-                    '_index' => $this->index,
-                    '_type' => $model->searchableAs(),
-                ]
+            $params = [
+                'id'    => $model->getKey(),
+                'index' => $index,
+                'type'  => $model->searchableAs(),
             ];
+            $this->elastic->delete($params);
         });
 
-        $this->elastic->bulk($params);
     }
 
     /**
@@ -130,15 +136,23 @@ class ElasticsearchEngine extends Engine
      * @param  array  $options
      * @return mixed
      */
-    protected function performSearch(Builder $builder, array $options = [])
+    protected function performSearch(Builder $builder, array $options = [], $index = false)
     {
+        if($index){
+            $index = config('scout.elasticsearch.default_index');
+        }
+        
         $params = [
-            'index' => $this->index,
+            'index' => $index,
             'type' => $builder->index ?: $builder->model->searchableAs(),
             'body' => [
                 'query' => [
                     'bool' => [
-                        'must' => [['query_string' => [ 'query' => "*{$builder->query}*"]]]
+                        'must' => [
+                                [
+                                    'query_string' => [ 'query' => "*{$builder->query}*"]
+                                ]
+                            ]
                     ]
                 ]
             ]
