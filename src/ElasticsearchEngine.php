@@ -33,7 +33,7 @@ class ElasticsearchEngine extends Engine
                     ->build();
     }
 
-    protected function getIndexFromModals($modals)
+    protected function getIndexFromModels($models)
     {
         return config('app.name') . '_' . $models->first()->searchableAs();
     }
@@ -50,7 +50,7 @@ class ElasticsearchEngine extends Engine
             return;
         }
 
-        $index = $this->getIndexFromModals($modals);
+        $index = $this->getIndexFromModels($models);
 
         if ($this->usesSoftDelete($models->first()) && config('scout.soft_delete', false)) {
             $models->each->pushSoftDeleteMetadata();
@@ -81,7 +81,7 @@ class ElasticsearchEngine extends Engine
     public function delete($models)
     {
 
-        $index = $this->getIndexFromModals($modals);
+        $index = $this->getIndexFromModels($models);
         $models->each(function($model) use($index)
         {
             $params = [
