@@ -2,7 +2,7 @@
 
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
 
-This package makes is the [Elasticsearch](https://www.elastic.co/products/elasticsearch) driver for Laravel Scout.
+This package makes is the [Elasticsearch](https://www.elastic.co/products/elasticsearch) v6.x driver for Laravel Scout.
 
 ## Contents
 
@@ -19,7 +19,7 @@ You can install the package via composer:
 composer require aobozhang/laravel-scout-elastic @dev
 ```
 
-You must add the Scout service provider and the package service provider in your app.php config:
+Unless Laravel 5.5 or Above, You must add the Scout service provider and the package service provider in your app.php config:
 
 ```php
 // config/app.php
