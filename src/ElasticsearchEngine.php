@@ -36,7 +36,7 @@ class ElasticsearchEngine extends Engine
     protected function getIndexFromModels()
     {
         $prefix = config('scout.elasticsearch.index_prefix');
-        
+
         if($prefix){
             return strtolower(config('app.name') . '_' . config('scout.elasticsearch.default_index'));
         }else{
@@ -68,8 +68,8 @@ class ElasticsearchEngine extends Engine
             $params['body'][] = [
                 'update' => [
                     '_id'    => $model->getKey(),
-                    '_index' => $index,
-                    '_type'  => $model->searchableAs(),
+                    '_index' => $model->searchableAs(),
+                    '_type'  => $model->getTable(),
                 ]
             ];
             $params['body'][] = [
@@ -77,6 +77,7 @@ class ElasticsearchEngine extends Engine
                 'doc_as_upsert' => true
             ];
         });
+
         $this->elastic->bulk($params);
 
     }
@@ -95,8 +96,8 @@ class ElasticsearchEngine extends Engine
         {
             $params = [
                 'id'    => $model->getKey(),
-                'index' => $index,
-                'type'  => $model->searchableAs(),
+                'index' => $model->searchableAs(),
+                'type'  => $model->getTable(),
             ];
             $this->elastic->delete($params);
         });
@@ -148,18 +149,18 @@ class ElasticsearchEngine extends Engine
     protected function performSearch(Builder $builder, array $options = [], $index = false)
     {
         if(!$index){
-            $index = $this->getIndexFromModels();
+            $index = $builder->model->searchableAs(); //$this->getIndexFromModels();
         }
 
         $params = [
             'index' => $index,
-            'type' => $builder->index ?: $builder->model->searchableAs(),
+            'type' => $builder->index ?: $builder->model->getTable(),
             'body' => [
                 'query' => [
                     'bool' => [
                         'must' => [
                                 [
-                                    'query_string' => [ 'query' => "{$builder->query}"] // try to use standard  divided words
+                                    'query_string' => [ 'query' => "*{$builder->query}*"]
                                 ]
                             ]
                     ]
