@@ -79,7 +79,6 @@ class ElasticsearchEngine extends Engine
         });
 
         $this->elastic->bulk($params);
-
     }
 
     /**
@@ -242,7 +241,7 @@ class ElasticsearchEngine extends Engine
                         ->pluck('_id')->values()->all();
 
         $models = $model->whereIn(
-            $model->getKeyName(), $keys
+            $model->qualifyColumn($model->getKeyName()), $keys
         )->get()->keyBy($model->getKeyName());
 
         return collect($results['hits']['hits'])->map(function ($hit) use ($model, $models) {
@@ -254,7 +253,7 @@ class ElasticsearchEngine extends Engine
      * Get the total count from a raw result returned by the engine.
      *
      * @param  mixed  $results
-     * @return int
+     * @return int`
      */
     public function getTotalCount($results)
     {
