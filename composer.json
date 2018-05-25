@@ -1,5 +1,5 @@
 {
-    "name": "C10ne/laravel-scout-elastic",
+    "name": "c10ne/laravel-scout-elastic",
     "description": "Elastic Driver for latest version of Laravel Scout",
     "keywords": ["laravel", "scout", "elasticsearch", "elastic"],
     "require": {
