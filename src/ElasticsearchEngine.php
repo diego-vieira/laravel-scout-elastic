@@ -145,16 +145,15 @@ class ElasticsearchEngine extends Engine
             'body'  => [
                 'query' => [
                     'bool' => [
-                        'must' => [],
+                        'must' => [
+                            [
+                                'query_string' => ['query' => "*{$builder->query}*"],
+                            ],
+                        ],
                     ],
                 ],
             ],
         ];
-
-        if ($builder->query != '*') {
-            $params['body']['query']['bool']['must'] = array_merge($params['body']['query']['bool']['must'],
-                ['query_string' => ['query' => "*{$builder->query}*"]]);
-        }
 
         if ($sort = $this->sort($builder)) {
             $params['body']['sort'] = $sort;
