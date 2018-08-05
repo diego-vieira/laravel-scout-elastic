@@ -1,17 +1,17 @@
 {
-    "name": "c10ne/laravel-scout-elastic",
+    "name": "diego-vieira/laravel-scout-elastic",
     "description": "Elastic Driver for latest version of Laravel Scout",
     "keywords": ["laravel", "scout", "elasticsearch", "elastic"],
     "require": {
         "php": ">=7.0.0",
-        "laravel/scout": "^4.0",
+        "laravel/scout": "^5.0",
         "elasticsearch/elasticsearch": "^6.0"
     },
      "require-dev": {
         "fzaninotto/faker": "~1.4",
         "mockery/mockery": "0.9.*",
         "phpunit/phpunit": "~5.0",
-        "laravel/scout": "^4.0",
+        "laravel/scout": "^5.0",
         "elasticsearch/elasticsearch": "^6.0"
     },
     "autoload": {

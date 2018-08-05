@@ -2,12 +2,11 @@
 
 namespace ScoutEngines\Elasticsearch;
 
-use Laravel\Scout\Builder;
-use Laravel\Scout\Engines\Engine;
 use Elasticsearch\ClientBuilder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Collection as BaseCollection;
+use Laravel\Scout\Builder;
+use Laravel\Scout\Engines\Engine;
 
 class ElasticsearchEngine extends Engine
 {
@@ -29,19 +28,13 @@ class ElasticsearchEngine extends Engine
         $hosts = config('scout.elasticsearch.hosts');
 
         $this->elastic = ClientBuilder::create()
-                    ->setHosts($hosts)
-                    ->build();
+            ->setHosts($hosts)
+            ->build();
     }
 
-    protected function getIndexFromModels()
+    protected function getIndexPrefix()
     {
-        $prefix = config('scout.elasticsearch.index_prefix');
-
-        if($prefix){
-            return strtolower(config('app.name') . '_' . config('scout.elasticsearch.default_index'));
-        }else{
-            return strtolower(config('scout.elasticsearch.default_index'));
-        }
+        return strtolower(config('scout.prefix'));
     }
 
     /**
@@ -56,25 +49,24 @@ class ElasticsearchEngine extends Engine
             return;
         }
 
-        $index = $this->getIndexFromModels();
+        $prefix = $this->getIndexPrefix();
 
         if ($this->usesSoftDelete($models->first()) && config('scout.soft_delete', false)) {
             $models->each->pushSoftDeleteMetadata();
         }
 
         $params['body'] = [];
-        $models->each(function($model) use (&$params, $index)
-        {
+        $models->each(function ($model) use (&$params, $prefix) {
             $params['body'][] = [
                 'update' => [
                     '_id'    => $model->getKey(),
-                    '_index' => $model->searchableAs(),
+                    '_index' => $prefix . $model->searchableAs(),
                     '_type'  => $model->getTable(),
-                ]
+                ],
             ];
             $params['body'][] = [
-                'doc' => $model->toSearchableArray(),
-                'doc_as_upsert' => true
+                'doc'           => $model->toSearchableArray(),
+                'doc_as_upsert' => true,
             ];
         });
 
@@ -89,13 +81,11 @@ class ElasticsearchEngine extends Engine
      */
     public function delete($models)
     {
-
-        $index = $this->getIndexFromModels();
-        $models->each(function($model) use($index)
-        {
+        $prefix = $this->getIndexPrefix();
+        $models->each(function ($model) use ($prefix) {
             $params = [
                 'id'    => $model->getKey(),
-                'index' => $model->searchableAs(),
+                'index' => $prefix . $model->searchableAs(),
                 'type'  => $model->getTable(),
             ];
             $this->elastic->delete($params);
@@ -113,7 +103,7 @@ class ElasticsearchEngine extends Engine
     {
         return $this->performSearch($builder, array_filter([
             'numericFilters' => $this->filters($builder),
-            'size' => $builder->limit,
+            'size'           => $builder->limit,
         ]));
     }
 
@@ -129,11 +119,11 @@ class ElasticsearchEngine extends Engine
     {
         $result = $this->performSearch($builder, [
             'numericFilters' => $this->filters($builder),
-            'from' => (($page * $perPage) - $perPage),
-            'size' => $perPage,
+            'from'           => (($page * $perPage) - $perPage),
+            'size'           => $perPage,
         ]);
 
-       $result['nbPages'] = $result['hits']['total']/$perPage;
+        $result['nbPages'] = $result['hits']['total'] / $perPage;
 
         return $result;
     }
@@ -145,26 +135,24 @@ class ElasticsearchEngine extends Engine
      * @param  array  $options
      * @return mixed
      */
-    protected function performSearch(Builder $builder, array $options = [], $index = false)
+    protected function performSearch(Builder $builder, array $options = [])
     {
-        if(!$index){
-            $index = $builder->model->searchableAs(); //$this->getIndexFromModels();
-        }
+        $prefix = $this->getIndexPrefix();
 
         $params = [
-            'index' => $index,
-            'type' => $builder->index ?: $builder->model->getTable(),
-            'body' => [
+            'index' => $prefix . $builder->model->searchableAs(),
+            'type'  => $builder->index ?: $builder->model->getTable(),
+            'body'  => [
                 'query' => [
                     'bool' => [
                         'must' => [
-                                [
-                                    'query_string' => [ 'query' => "*{$builder->query}*"]
-                                ]
-                            ]
-                    ]
-                ]
-            ]
+                            [
+                                'query_string' => ['query' => "*{$builder->query}*"],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
         ];
 
         if ($sort = $this->sort($builder)) {
@@ -227,18 +215,19 @@ class ElasticsearchEngine extends Engine
     /**
      * Map the given results to instances of the given model.
      *
+     * @param  Builder $builder
      * @param  mixed  $results
      * @param  \Illuminate\Database\Eloquent\Model  $model
      * @return Collection
      */
-    public function map($results, $model)
+    public function map(Builder $builder, $results, $model)
     {
         if ($results['hits']['total'] === 0) {
             return Collection::make();
         }
 
         $keys = collect($results['hits']['hits'])
-                        ->pluck('_id')->values()->all();
+            ->pluck('_id')->values()->all();
 
         $models = $model->whereIn(
             $model->qualifyColumn($model->getKeyName()), $keys
@@ -266,13 +255,13 @@ class ElasticsearchEngine extends Engine
      * @param  Builder $builder
      * @return array|null
      */
-    protected function sort($builder)
+    protected function sort(Builder $builder)
     {
         if (count($builder->orders) == 0) {
             return null;
         }
 
-        return collect($builder->orders)->map(function($order) {
+        return collect($builder->orders)->map(function ($order) {
             return [$order['column'] => $order['direction']];
         })->toArray();
     }
