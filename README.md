@@ -2,7 +2,7 @@
 
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
 
-This package makes is the [Elasticsearch](https://www.elastic.co/products/elasticsearch) v6.x driver for Laravel Scout 4.x.
+This package makes is the [Elasticsearch](https://www.elastic.co/products/elasticsearch) v6.x driver for Laravel Scout 5.x.
 
 ## Contents
 
@@ -13,13 +13,24 @@ This package makes is the [Elasticsearch](https://www.elastic.co/products/elasti
 
 ## Installation
 
-You can install the package via composer:
+Add to your composer.json
 
-``` bash
-composer require C10ne/laravel-scout-elastic @dev
+```
+"repositories": [
+    {
+        "type": "vcs",
+        "url": "https://github.com/diego-vieira/laravel-scout-elastic"
+    }
+]
 ```
 
-Unless Laravel 5.5 or Above, You must add the Scout service provider and the package service provider in your app.php config:
+Then run
+
+``` bash
+composer require diego-vieira/laravel-scout-elastic dev-master
+```
+
+Unless Laravel 5.5 or above, you must add the Scout service provider and the package service provider in your app.php config:
 
 ```php
 // config/app.php
@@ -31,8 +42,11 @@ Unless Laravel 5.5 or Above, You must add the Scout service provider and the pac
 ],
 ```
 
-### Setting up Elasticsearch configuration
-You must have a Elasticsearch server up and running with the index you want to use created
+### Install Laravel Scout
+https://laravel.com/docs/5.6/scout#installation
+
+### Set up Elasticsearch configuration
+You must have a Elasticsearch server up and running.
 
 If you need help with this please refer to the [Elasticsearch documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html)
 
@@ -46,8 +60,6 @@ After you've published the Laravel Scout package configuration:
 ...
 
 'elasticsearch' => [
-        'default_index' => env('ELASTICSEARCH_INDEX', 'default'),
-        'index_prefix'  => env('ELASTICSEARCH_INDEX_PREFIX', true),
         'hosts' => [
             [
                 'host'   => env('ELASTICSEARCH_HOST', 'localhost'),
@@ -63,7 +75,8 @@ After you've published the Laravel Scout package configuration:
 
 ## Usage
 
-Now you can use Laravel Scout as described in the [official documentation](https://laravel.com/docs/5.3/scout)
+Now you can use Laravel Scout as described in the [official documentation](https://laravel.com/docs/5.6/scout)
+
 ## Credits
 
 - [Erick Tamayo](https://github.com/ericktamayo)  - Fork from
